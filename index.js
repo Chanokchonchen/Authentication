@@ -3,6 +3,7 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const mongoose = require('mongoose');
 const encrypt = require('mongoose-encryption')
+const md5 = require('md5');
 const app = express();
 app.set('view engine', 'ejs');
 app.use(bodyParser.urlencoded({extended: true}));
@@ -15,7 +16,6 @@ const userSchema = new mongoose.Schema({
   email:String,
   password:String
 })
-userSchema.plugin(encrypt, { secret:process.env.SECRET ,encryptedFields: ['password']});
 const User = mongoose.model("user",userSchema);
 
 app.get("/",(req,res) => {
@@ -30,7 +30,7 @@ app.get("/register",(req,res) => {
 app.post("/register",(req,res)=> {
   const newuser = new User ({
     email:req.body.email,
-    password:req.body.password
+    password:md5(req.body.password)
   })
   newuser.save((err) => {
     if (err) {
@@ -47,7 +47,7 @@ app.post("/login",(req,res) => {
       console.log(err);
     } else {
       if(founduser) {
-        if (founduser.password == req.body.password) {
+        if (founduser.password == md5(req.body.password)) {
           res.render("secrets");
         } else {
           console.log("Invalid Email or Password");
