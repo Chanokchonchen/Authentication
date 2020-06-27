@@ -3,7 +3,7 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const mongoose = require('mongoose');
 const encrypt = require('mongoose-encryption')
-const md5 = require('md5');
+const bcrypt = require('bcrypt');
 const app = express();
 app.set('view engine', 'ejs');
 app.use(bodyParser.urlencoded({extended: true}));
@@ -28,30 +28,35 @@ app.get("/register",(req,res) => {
   res.render("register");
 })
 app.post("/register",(req,res)=> {
-  const newuser = new User ({
-    email:req.body.email,
-    password:md5(req.body.password)
-  })
-  newuser.save((err) => {
-    if (err) {
-      console.log(err);
-    } else {
-      console.log("Register Success");
-      res.render("secrets");
-    }
-  })
-})
+  bcrypt.hash(req.body.password, 10, function(err, hash) {
+    const newuser = new User ({
+      email:req.body.email,
+      password:hash
+    })
+    newuser.save((err) => {
+      if (err) {
+        console.log(err);
+      } else {
+        console.log("Register Success");
+        res.render("secrets");
+      }
+    })
+  });
+});
+
 app.post("/login",(req,res) => {
   User.findOne({email:req.body.email},(err,founduser) =>{
     if(err) {
       console.log(err);
     } else {
       if(founduser) {
-        if (founduser.password == md5(req.body.password)) {
-          res.render("secrets");
-        } else {
-          console.log("Invalid Email or Password");
-        }
+        bcrypt.compare(req.body.password, founduser.password, function(err, result) {
+          if(result) {
+            res.render("secrets");
+          } else {
+            console.log("Invalid Email or Password");
+          }
+        });
       }
     }
   })
